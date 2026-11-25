@@ -1087,27 +1087,31 @@ canvas.confetti{position:fixed;inset:0;pointer-events:none;z-index:30}
   }
   function hash(s){ let h=0; for (const ch of s) h=(h*31+ch.charCodeAt(0))|0; return h; }
 
-  let writing = false;
   async function toggleCheer(id, btn){
-    if (!db || !me || writing) return;
-    writing = true; btn.disabled = true;
-    const before = Object.keys(mine()).length;
-    const next = {...mine()};
+    if (!db || !me) return;
+    const prev = {...mine()};
+    const before = Object.keys(prev).length;
+    const next = {...prev};
     const adding = !next[id];
     if (adding) next[id] = Date.now(); else delete next[id];
-    const hadSticker = stickerLevels(mine());
-    try {
-      await db.doc("cheers/"+me).set({done: next});
-      if (adding){
-        const n = noms.find(x => x.id === id);
-        const lv = n && n.level;
-        const newCount = countFor(id) + (mine()[id] ? 0 : 1);
-        celebrate(lv, before, before + 1, weekCount(next) === 3, (lv && !hadSticker.has(lv)) ? stickerLevels(next).size : 0, MILESTONES.includes(newCount) ? newCount : 0);
-      }
+    const hadSticker = stickerLevels(prev);
+    cheers.set(me, next);
+    render();
+    if (adding){
+      const n = noms.find(x => x.id === id);
+      const lv = n && n.level;
+      const newCount = countFor(id);
+      celebrate(lv, before, before + 1, weekCount(next) === 3, (lv && !hadSticker.has(lv)) ? stickerLevels(next).size : 0, MILESTONES.includes(newCount) ? newCount : 0);
     }
-    catch { btn.textContent = "Couldn't save. Try again"; }
-    writing = false; btn.disabled = false;
+    try { await db.doc("cheers/"+me).set({done: {...mine()}}); }
+    catch {
+      const cur = {...mine()};
+      if (adding) delete cur[id]; else cur[id] = prev[id];
+      cheers.set(me, cur); render();
+      feedMsg("Couldn't save that. Check your connection and try again.", true);
+    }
   }
+
 
   const VIEWS = {home:"v-home", backup:"v-backup", missions:"v-missions", privacy:"v-privacy", tips:"v-tips", new:"v-new"};
   const HEADS = {home:"home-title", backup:"backup-title", missions:"feed-title", privacy:"privacy-title", tips:"tips-title", new:"new-title"};
