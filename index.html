@@ -858,7 +858,8 @@ canvas.confetti{position:fixed;inset:0;pointer-events:none;z-index:30}
       rows = visible.filter(n => mine()[n.id]).sort((a,b) => b.createdAt - a.createdAt);
     } else {
       rows = visible.filter(n => !isDone(n));
-      rows.sort(sort==="needs" ? (a,b)=>(b.level||0)-(a.level||0) || a.c-b.c || b.createdAt-a.createdAt : (a,b)=>b.createdAt-a.createdAt);
+      const others = n => n.c - (mine()[n.id] ? 1 : 0);
+      rows.sort(sort==="needs" ? (a,b)=>(b.level||0)-(a.level||0) || others(a)-others(b) || b.createdAt-a.createdAt : (a,b)=>b.createdAt-a.createdAt);
       const minePending = canEdit ? [] : all.filter(n => !n.ok && n.createdBy === me);
       rows = minePending.concat(rows);
     }
